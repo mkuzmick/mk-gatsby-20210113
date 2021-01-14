@@ -1,99 +1,287 @@
-<!-- AUTO-GENERATED-CONTENT:START (STARTER) -->
-<p align="center">
-  <a href="https://www.gatsbyjs.com">
-    <img alt="Gatsby" src="https://www.gatsbyjs.com/Gatsby-Monogram.svg" width="60" />
-  </a>
-</p>
-<h1 align="center">
-  Gatsby's default starter
-</h1>
+# 20210113 MK GATSBY
 
-Kick off your project with this default boilerplate. This starter ships with the main Gatsby configuration files you might need to get up and running blazing fast with the blazing fast app generator for React.
+## THE STEPS
+to create this
 
-_Have another more specific idea? You may want to check out our vibrant collection of [official and community-created starters](https://www.gatsbyjs.com/docs/gatsby-starters/)._
 
-## 🚀 Quick start
-
-1.  **Create a Gatsby site.**
-
-    Use the Gatsby CLI to create a new site, specifying the default starter.
-
-    ```shell
-    # create a new Gatsby site using the default starter
-    gatsby new my-default-starter https://github.com/gatsbyjs/gatsby-starter-default
+* we now have the initial build and github repo going with a script like so
     ```
+    #! /usr/bin/env zsh
 
-1.  **Start developing.**
-
-    Navigate into your new site’s directory and start it up.
-
-    ```shell
-    cd my-default-starter/
+    PROJECT_NAME=$1
+    gatsby new $PROJECT_NAME $2
+    DATA_STRING="{\"name\":\"$PROJECT_NAME\",\"private\":false}"
+    curl -u "mkuzmick:$GITHUB_TOKEN" https://api.github.com/user/repos -d $DATA_STRING
+    code $PROJECT_NAME
+    cd $PROJECT_NAME
+    git remote add origin "https://github.com/mkuzmick/$PROJECT_NAME.git"
+    git branch -M main
+    git push -u origin main
+    open -a "Firefox Developer Edition" "http://localhost:8000"
+    open -a "Firefox Developer Edition" "http://localhost:8000/___graphql"
     gatsby develop
     ```
+* install all the markdown and mdx plugins: [gatsby-transformer-remark](https://www.gatsbyjs.com/plugins/gatsby-transformer-remark/?=gatsby%20transformer%20remark), [gatsby-remark-images](https://www.gatsbyjs.com/plugins/gatsby-remark-images/?=remark%20images) and [gatsby-plugin-mdx](https://www.gatsbyjs.com/plugins/gatsby-plugin-mdx/?=mdx):
+    ```
+    npm install gatsby-transformer-remark gatsby-remark-images gatsby-plugin-sharp gatsby-plugin-mdx @mdx-js/mdx @mdx-js/react
+    ```
+* in `gatsby-config.js`, hook the `gatsby-transformer-remark` plugin up and add the `gatsby-remark-images` plugin to it 
+    ```
+    `gatsby-remark-images`,
+    {
+      resolve: `gatsby-transformer-remark`,
+      options: {
+        plugins: [
+          {
+            resolve: `gatsby-remark-images`,
+            options: {
+              maxWidth: 960,
+            },
+          },
+        ],
+      },
+    },
+    ```
+* If you want something other than the simplest of mdx layouts, start by creating a simple `mdx-layout.js` file for now that you'll link to in the config file. Let's imagine that for this project we want two layouts, one for "Resources" that will live in `content/resources` and one for other `.mdx` files that live elsewhere in the content folder or in the `src/pages` folder. In `src/components/layouts/mdx-layout-basic.js` and `src/components/layouts/mdx-layout-resource.js` add some simple code.
+    ```
+    import React from 'react';
 
-1.  **Open the source code and start editing!**
+    export default ({ children }) => (
+        <div>
+          <h1>My Resource Layout</h1>
+          <div>{children}</div>
+        </div>
+      )
+    ```
+* then add the `gatsby-plugin-mdx` code to your `gatsby-config.js`, specifying the layouts for `resources` and for `default`:
+    ```
+    {
+      resolve: `gatsby-plugin-mdx`,
+        options: {
+          defaultLayouts: {
+            resources: require.resolve("./src/components/layouts/mdx-layout-resource.js"),
+            default: require.resolve("./src/components/layouts/mdx-layout-basic.js"),
+          },
+        gatsbyRemarkPlugins: [
+          {
+            resolve: `gatsby-remark-images`,
+            options: {
+              maxWidth: 960,
+            },
+          },
+        ],
+      },
+    },
+    ```
 
-    Your site is now running at `http://localhost:8000`!
+* create the content folders (moving images from `src/images` to `content/images`) and initial files (if you don't want to just use the `src/pages` folder for all your mdx)
+    ```
+    mkdir content content/resources
+    mv src/images content/images
+    curl -o content/images/gatsby.jpg "https://i.guim.co.uk/img/media/cc5ff87a032ce6e4144e63a2a1cbe476dbc7cd5a/273_0_3253_1952/master/3253.jpg?width=620&quality=45&auto=format&fit=max&dpr=2&s=d8da5fd430d3983dc50543a44b3979d4"
+    echo "# MDX RESOURCE\ncontent goes here\n\![Gatsby](../images/gatsby.jpg)" > content/resources/sample-resource.mdx
+    echo "# MDX PAGE\ncontent goes here\n\![Gatsby](../../content/images/gatsby.jpg)" > src/pages/sample-mdx-page.mdx
+    ```
+* then in the `gatsby-config.js` let's connect the `gatsby-source-filesystem` plugin to these new folders for mdx posts and images. We'll delete or modify the current `gatsby-source-filesystem` element, and instead have these two:
+    ```
+    {
+      resolve: `gatsby-source-filesystem`,
+      options: {
+        name: `resources`,
+        path: `${__dirname}/content/resources`,
+      },
+    },
+    {
+      resolve: `gatsby-source-filesystem`,
+      options: {
+        name: `images`,
+        path: `${__dirname}/content/images`,
+      },
+    },
+    ```
+* don't forget to ensure that there's a correct path to the icon (either a new icon or the one gatsby provided, which has been moved):
+    ```
+    icon: `content/images/gatsby-icon.png`,
+    ```
+* then install emotion
+    ```
+    npm i gatsby-plugin-emotion @emotion/core @emotion/react
+    ```
+* next add `gatsby-plugin-emotion` to list of plugins in `gatsby-config.js` 
+* create a test emotion page . . . the `css={}` prop should just work now.
 
-    _Note: You'll also see a second link: _`http://localhost:8000/___graphql`_. This is a tool you can use to experiment with querying your data. Learn more about using this tool in the [Gatsby tutorial](https://www.gatsbyjs.com/tutorial/part-five/#introducing-graphiql)._
+```
+/** @jsx jsx */
+// import React from "react";
+import { Link, withAssetPrefix } from "gatsby";
+import Layout from "../components/layout";
+import Image from "../components/image";
+import SEO from "../components/seo";
+import { css, jsx } from '@emotion/react'
 
-    Open the `my-default-starter` directory in your code editor of choice and edit `src/pages/index.js`. Save your changes and the browser will update in real time!
+const Page3 = () => {
+    const color = "white" 
+    return (
+  <Layout>
+    <SEO
+      title="Home"
+      keywords={[`gatsby`, `application`, `react`]}
+    />
+    <h1
+      css={{
+        fontFamily: 'Fantasy'
+      }}
+    >Hi people</h1>
+    <p>Welcome to your new Gatsby site.</p>
+    <p>Now go build something great.</p>
+    <div
+        css={css`
+        padding: 32px;
+        background-color: hotpink;
+        font-size: 24px;
+        border-radius: 4px;
+        &:hover {
+            color: ${color};
+        }
+        `}
+    >
+    Hover to change color.
+    </div>
+    <Link to="/page-2/">Go to page 2</Link>
+  </Layout>
+);
+    }
 
-## 🧐 What's inside?
+export default Page3;
+```
 
-A quick look at the top-level files and directories you'll see in a Gatsby project.
+* create pages for md and mdx in the `content` folder.
 
-    .
-    ├── node_modules
-    ├── src
-    ├── .gitignore
-    ├── .prettierrc
-    ├── gatsby-browser.js
-    ├── gatsby-config.js
-    ├── gatsby-node.js
-    ├── gatsby-ssr.js
-    ├── LICENSE
-    ├── package-lock.json
-    ├── package.json
-    └── README.md
 
-1.  **`/node_modules`**: This directory contains all of the modules of code that your project depends on (npm packages) are automatically installed.
+### NOTES
 
-2.  **`/src`**: This directory will contain all of the code related to what you will see on the front-end of your site (what you see in the browser) such as your site header or a page template. `src` is a convention for “source code”.
+column components
+```
+/** @jsx jsx */
+import { css, jsx } from '@emotion/react'
 
-3.  **`.gitignore`**: This file tells git which files it should not track / not maintain a version history for.
+export const ThirtySeventy = ({children}) => (
+    <div
+        css={{
+            display: "grid",
+            "grid-template-columns": "3fr 7fr"
+        }}
+    >
+        {children}
+    </div>
+)
 
-4.  **`.prettierrc`**: This is a configuration file for [Prettier](https://prettier.io/). Prettier is a tool to help keep the formatting of your code consistent.
+export const Thirty = ({children}) => {
+    return (
+        <div>
+            {children}
+        </div>
+    )
+}
 
-5.  **`gatsby-browser.js`**: This file is where Gatsby expects to find any usage of the [Gatsby browser APIs](https://www.gatsbyjs.com/docs/browser-apis/) (if any). These allow customization/extension of default Gatsby settings affecting the browser.
+export const Seventy = ({children}) => {
+    return (
+        <div>
+            {children}
+        </div>
+    )
+}
 
-6.  **`gatsby-config.js`**: This is the main configuration file for a Gatsby site. This is where you can specify information about your site (metadata) like the site title and description, which Gatsby plugins you’d like to include, etc. (Check out the [config docs](https://www.gatsbyjs.com/docs/gatsby-config/) for more detail).
+export const StickyOne = ({children}) => {
+    return (
+        <div
+            css={{
+                position: "sticky",
+                top: "50%",
+                padding: "10px",
+                backgroundColor: "rgba(0, 0, 20, 0.2)"
+            }}
+        >
+            {children}
+        </div>
+    )
+}
+```
 
-7.  **`gatsby-node.js`**: This file is where Gatsby expects to find any usage of the [Gatsby Node APIs](https://www.gatsbyjs.com/docs/node-apis/) (if any). These allow customization/extension of default Gatsby settings affecting pieces of the site build process.
+then mdx
 
-8.  **`gatsby-ssr.js`**: This file is where Gatsby expects to find any usage of the [Gatsby server-side rendering APIs](https://www.gatsbyjs.com/docs/ssr-apis/) (if any). These allow customization of default Gatsby settings affecting server-side rendering.
+```
+import { ThirtySeventy, Thirty, Seventy, StickyOne } from "../components/layouts/columns"
 
-9.  **`LICENSE`**: This Gatsby starter is licensed under the 0BSD license. This means that you can see this file as a placeholder and replace it with your own license.
+<ThirtySeventy>
+<Thirty>
 
-10. **`package-lock.json`** (See `package.json` below, first). This is an automatically generated file based on the exact versions of your npm dependencies that were installed for your project. **(You won’t change this file directly).**
+<StickyOne>
 
-11. **`package.json`**: A manifest file for Node.js projects, which includes things like metadata (the project’s name, author, etc). This manifest is how npm knows which packages to install for your project.
+# MDX
+Testing testing.
 
-12. **`README.md`**: A text file containing useful reference information about your project.
+</StickyOne>
+</Thirty>
+<Seventy>
 
-## 🎓 Learning Gatsby
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus imperdiet, nulla et dictum interdum, nisi lorem egestas odio, vitae scelerisque enim ligula venenatis dolor. Maecenas nisl est, ultrices nec congue eget, auctor vitae massa. Fusce luctus vestibulum augue ut aliquet. Mauris ante ligula, facilisis sed ornare eu, lobortis in odio. Praesent convallis urna a lacus interdum ut hendrerit risus congue. Nunc sagittis dictum nisi, sed ullamcorper ipsum dignissim ac. I
+```
 
-Looking for more guidance? Full documentation for Gatsby lives [on the website](https://www.gatsbyjs.com/). Here are some places to start:
+etc.
 
-- **For most developers, we recommend starting with our [in-depth tutorial for creating a site with Gatsby](https://www.gatsbyjs.com/tutorial/).** It starts with zero assumptions about your level of ability and walks through every step of the process.
+### NEXT
 
-- **To dive straight into code samples, head [to our documentation](https://www.gatsbyjs.com/docs/).** In particular, check out the _Guides_, _API Reference_, and _Advanced Tutorials_ sections in the sidebar.
+the above is basically the most solid step by step log I have. Tomorrow let's start with this so that I don't have to retype (maybe just edit while waiting for any long installations).
 
-## 💫 Deploy
 
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/gatsbyjs/gatsby-starter-default)
+* add pages for content
+* add theme-ui back in
+* add base style (even just reset) to body
+* create ideal mdx provider (with style and key components)
+* create a grid, columns and stick-divs
+* log all steps
+* use useContext again while it's fresh (to pick colors of div elements or keyboard keys)
+* connect to Airtable
+* write a "color contrast" resource with that Gatsby shot and some waveform and vectorscope images
+* make that the starter resource
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/gatsbyjs/gatsby-starter-default)
+### THEME UI FOR LATER
 
-<!-- AUTO-GENERATED-CONTENT:END -->
+* install [gatsby-plugin-theme-ui](https://www.gatsbyjs.com/plugins/gatsby-plugin-theme-ui/?=theme-ui) 
+    ```
+    npm i theme-ui gatsby-plugin-theme-ui @theme-ui/presets
+    ```
+    or just tailwind with
+
+    ```
+    npm i @theme-ui/preset-tailwind
+    ```
+* then add it to `gatsby-config.js`
+    ```
+    plugins: ['gatsby-plugin-theme-ui'],
+    ```
+    or
+
+    ```
+    {
+      resolve: `gatsby-plugin-theme-ui`,
+      options: {
+        preset: "@theme-ui/preset-tailwind",
+      },
+    },
+    ```
+* make the shadow dir
+```
+mkdir src/gatsby-plugin-theme-ui
+```
+and add index
+```
+echo "export default {}" > src/gatsby-plugin-theme-ui/index.js
+```
+
+
+## LINKS
+* [react hooks article](https://www.robinwieruch.de/react-state-usereducer-usestate-usecontext)
+* [typescript in 5 minutes](https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes.html)
+
